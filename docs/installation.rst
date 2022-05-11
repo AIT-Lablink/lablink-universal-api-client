@@ -17,7 +17,17 @@ Use it in your local Maven_ setup by including the following dependency into you
 Installation from source
 ========================
 
-Installation from source requires a local **Java Development Kit** installation, for instance the `Oracle Java SE Development Kit 13 <https://www.oracle.com/technetwork/java/javase/downloads/index.html>`_ or the `OpenJDK <https://openjdk.java.net/>`_.
+Installation from source requires a local installation of the **Java Development Kit**, for instance the `Oracle Java SE Development Kit 13 <https://www.oracle.com/technetwork/java/javase/downloads/index.html>`_ or the `OpenJDK <https://openjdk.java.net/>`_.
+
+Then make sure that the ``JAVA_HOME`` environment variable is set and points to your JDK installation.
+
+.. seealso:: **Windows only**: Add the JDK installation directory to your ``JAVA_HOME`` user environment variable:
+
+  #. open the system properties (``WinKey`` + ``Pause`` or go to *Settings* |arrow| *System* |arrow| *About* |arrow| *System Info* |arrow| *Advanced System Settings*)
+  #. select the *Advanced* tab, then the *Environment Variables* button
+  #. select and edit the ``JAVA_HOME`` variable in the user variables, e.g., adding *C:\\Program Files\\Java\\jdk-13.0.2*.
+
+.. |arrow| unicode:: U+2192 .. rightwards arrow
 
 Check out the project and compile it with Maven_:
 

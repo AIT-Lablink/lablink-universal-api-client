@@ -46,7 +46,7 @@ Signal Configuration
 
 .. topic:: Required configuration parameters for each signal defined in category *Signals*
 
-  :*Id:*: SignalId of data exchange signal
+  :*Id*: SignalId of data exchange signal
   :*Source*: NodeId of data exchange signal source
   
 .. topic:: Optional configuration parameters for each input/output in category *Signals*
