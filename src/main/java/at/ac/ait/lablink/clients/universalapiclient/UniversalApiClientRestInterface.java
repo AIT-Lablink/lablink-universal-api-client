@@ -116,7 +116,7 @@ public class UniversalApiClientRestInterface {
         try {
           // Set the new value. This also triggers an update of the signal 
           // state via the associated state change notifier.
-          uapiClient.setServiceValue( id, updateState.getValue() );
+          uapiClient.setServiceValue( signal.getDataPointName(), updateState.getValue() );
 
           // The previous call updated the timestamp of the signal to the
           // current system time. The following lines overwrite this 

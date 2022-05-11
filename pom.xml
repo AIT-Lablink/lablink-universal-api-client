@@ -4,7 +4,7 @@
 
   <groupId>at.ac.ait.lablink.clients</groupId>
   <artifactId>universalapiclient</artifactId>
-  <version>0.0.1</version>
+  <version>0.0.2</version>
   <name>Lablink Universal API Client</name>
   <description>This package provides Lablink clients that can exchange data in compliance with the ERIGrid Universal Data Exchange API.</description>
   <url>https://github.com/ait-lablink/lablink-universal-api-client</url>

@@ -100,6 +100,7 @@ public class UniversalApiClient {
 
   // Tags for input configuration.
   protected static final String SIGNAL_CONFIG_TAG = "Signals";
+  protected static final String SIGNAL_DPNAME_TAG = "DPName";
   protected static final String SIGNAL_ID_TAG = "Id";
   protected static final String SIGNAL_SOURCE_TAG = "Source";
   protected static final String SIGNAL_WRITABLE_TAG = "Writable";
@@ -464,6 +465,11 @@ public class UniversalApiClient {
     while ( signalConfigListIter.hasNext() ) {
       JSONObject signalConfig = (JSONObject) signalConfigListIter.next();
 
+      // Datapoint name corresponding to signal.
+      String dpName = ConfigUtil.<String>getRequiredConfigParam( signalConfig,
+          SIGNAL_DPNAME_TAG, String.format( "Datapoint name of signal missing (%1$s)",
+          SIGNAL_DPNAME_TAG ) );
+
       // SignalId of signal.
       String signalId = ConfigUtil.<String>getRequiredConfigParam( signalConfig,
           SIGNAL_ID_TAG, String.format( "Id of signal missing (%1$s)",
@@ -480,7 +486,7 @@ public class UniversalApiClient {
       boolean readable = ConfigUtil.getOptionalConfigParam( signalConfig,
           SIGNAL_READABLE_TAG, true );
 
-      signals.put( signalId, new Signal( signalId, sourceId, writable, readable ) );
+      signals.put( signalId, new Signal( dpName, signalId, sourceId, writable, readable ) );
     }
   }
 
@@ -500,7 +506,7 @@ public class UniversalApiClient {
       Signal signal = entry.getValue();
 
       // Data service name.
-      String serviceName = signalName;
+      String serviceName = signal.getDataPointName();
 
       // Data service description.
       String serviceDesc = "data service for signal " + signalName;

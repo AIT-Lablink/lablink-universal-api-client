@@ -19,15 +19,21 @@ public class Signal {
   /** Signal state. */
   private SignalState state;
 
+  /** Datapoint name corresponding to the signal. */
+  private String dataPointName;
+
   /** 
    * Constructor.
    *
+   * @param dpn datapoint name corresponding to the signal
    * @param id SignalId
    * @param source NodeId
    * @param writable This flag indicates if the signal can be written
    * @param readable This flag indicates if the signal can be read
    */
-  public Signal( String id, String source, boolean writable, boolean readable ) {
+  public Signal( String dpn, String id, String source, 
+      boolean writable, boolean readable ) {
+    this.dataPointName = dpn;
     this.description = new SignalDescription( id, source, writable, readable );
     this.state = new SignalState();
   }
@@ -48,6 +54,15 @@ public class Signal {
    */
   public SignalState getState() {
     return this.state;
+  }
+
+  /**
+   * Retrieve the datapoint name.
+   *
+   * @return datapoint name
+   */
+  public String getDataPointName() {
+    return this.dataPointName;
   }
 
 }

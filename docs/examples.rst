@@ -2,7 +2,7 @@ About
 =====
 
 The `online repository <https://github.com/AIT-Lablink/lablink-universal-api-client>`_ of the Lablink Universal Data Exchange API client includes a simlpe example demonstrating its use.
-This example comprises a simple REST API implementing the `ERIGrid Universal Data Exchange API <https://erigrid2.github.io/JRA-3.1-api/universal-api.html>`_, which exposes a readable signal (``signal1``) and a writable signal (``signal2``).
+This example comprises a simple REST API implementing the `ERIGrid Universal Data Exchange API <https://erigrid2.github.io/JRA-3.1-api/universal-api.html>`_, which exposes a readable signal (``test/signal1``) and a writable signal (``test/signal2``).
 The readable signal is continuously updated from another data source (a `Lablink CSV reader <https://ait-lablink.readthedocs.io/projects/ait-lablink-csv-client>`_) and its current value can be retrieved by the user (e.g., using ``curl`` from the command prompt).
 The writable signal can be changed by the user (e.g., using ``curl`` from the command prompt).
 When running the example, both signals are visualized using a plotter.
@@ -47,7 +47,7 @@ This script does the following things:
 3. Run the Lablink clients, i.e., the Universal API client, the CSV reader client (which acts as data source) and the plotter client.
 
 For each started client, a new command prompt window should appear, printing debug information about the client's status.
-The Universal API client should continuously receive data from the CSV reader, which updates the value of signal ``signal1`` once per second.
+The Universal API client should continuously receive data from the CSV reader, which updates the value of signal ``test/signal1`` once per second.
 You can check this by looking at the Universal API client's command prompt window, where you should see debug information for each new value.
 This should look similar to the following:
 
@@ -58,32 +58,59 @@ This should look similar to the following:
    15:15:16.528 [pool-2-thread-1] DEBUG LlServiceBase - Service [signal1]: state changed from [13.346] to [13.536]!
    15:15:16.533 [pool-2-thread-1] DEBUG LlServiceBase - Notifying to the [1] registered listener...
    15:15:16.540 [pool-2-thread-1] INFO  UniversalApiClientDataNotifier - signal1: notifier -> state Changed from '13.346' to '13.536'
-   15:15:16.540 [pool-2-thread-1] DEBUG MqttDataPointDouble - For datapoint [data service for signal signal1], the value is updated to [13.536].
+   15:15:16.540 [pool-2-thread-1] DEBUG MqttDataPointDouble - For datapoint [data service for signal test/signal1], the value is updated to [13.536].
    ...
 
 
-Retrieve a signal value
------------------------
+List all available signals
+--------------------------
 
-In this example, the Universal API client has two signals: ``signal1`` is a read-only signal, ``signal2`` is a write-only signal.
-Once the client is running, you can retrieve the latest value of ``signal1``.
+In this example, the Universal API client has two signals: 
+
+* ``test/signal1`` is a read-only signal
+* ``test/signal2`` is a write-only signal.
+
+You can retrieve this information directly from the client.
 There are various ways of retrieving data from REST interfaces, one way is using ``curl`` (which is by default already included on recent versions of Windows).
 Use ``curl`` directly from the command prompt (``cmd.exe``): 
 
 .. code-block:: winbatch
 
-   curl -i localhost:7000/uapi-test/signal/signal1/state
+   curl -i localhost:7000/uapi-test/signals
 
-This will return the API's response status (*200* in case of success) and the current value (state) of ``signal1``, for instance:
+
+This will return the API's response status (*200* in case of success) and the list of available signals:
 
 .. code-block:: winbatch
 
    HTTP/1.1 200 OK
-   Date: Wed, 11 May 2022 12:58:12 GMT
+   Date: Wed, 11 May 2022 14:06:12 GMT
+   Transfer-encoding: chunked
+   Content-type: application/json
+
+   [{"id":"test/signal2","source":"test2-source","writable":true,"readable":false},{"id":"test/signal1","source":"test1-source","writable":false,"readable":true}]
+
+
+Retrieve a signal value
+-----------------------
+
+Once the client is running, you can retrieve the latest value of ``test/signal1``.
+To do so, you can use ``curl`` directly from the command prompt (``cmd.exe``): 
+
+.. code-block:: winbatch
+
+   curl -i localhost:7000/uapi-test/signal/test/signal1/state
+
+This will return the API's response status (*200* in case of success) and the current value (state) of ``test/signal1``, for instance:
+
+.. code-block:: winbatch
+
+   HTTP/1.1 200 OK
+   Date: Wed, 11 May 2022 14:12:58 GMT
    Transfer-encoding: chunked
    Content-type: application/json
    
-   {"timestamp":1.65227389253E9,"value":14.33}
+   {"timestamp":1.652278378469E9,"value":14.05}
 
 The returned value should agree with the latest value as visualized by the plotter.
 
@@ -95,23 +122,23 @@ The returned value should agree with the latest value as visualized by the plott
 Set a signal value
 ------------------
 
-The Universal API client also has a write-only signal called ``signal2``.
+The Universal API client also has a write-only signal called ``test/signal2``.
 There are various ways of updating data through a REST interfaces, one way is again with the help of ``curl``.
 Use ``curl`` directly from the command prompt (``cmd.exe``): 
 
 .. code-block:: winbatch
 
-   curl -i -X PUT -H "Content-Type: application/json" -d "{"""timestamp""":123.456,"""value""":10}" localhost:7000/uapi-test/signal/signal2/state
+   curl -i -X PUT -H "Content-Type: application/json" -d "{"""timestamp""":123.456,"""value""":13}" localhost:7000/uapi-test/signal/test/signal2/state
 
 This will return the API's response status (*200* in case of success):
 
 .. code-block:: winbatch
 
    HTTP/1.1 200 OK
-   Date: Wed, 11 May 2022 13:08:17 GMT
+   Date: Wed, 11 May 2022 14:16:31 GMT
    Content-length: 0
 
-The new value for ``signal2`` should also be visualized by the plotter.
+The new value for ``test/signal2`` should also be visualized by the plotter.
 
 .. image:: img/example_write_signal_value.png
    :align: center

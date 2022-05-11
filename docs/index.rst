@@ -60,3 +60,4 @@ Version history
 ===============
 
 :0.0.1: initial version
+:0.0.2: do not use SignalId as datapoint name for associated Lablink service
