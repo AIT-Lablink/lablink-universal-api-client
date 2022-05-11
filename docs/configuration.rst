@@ -74,18 +74,21 @@ The following is an example configuration for a *UniversalApiClient* client:
        },
        "Signals": [
            {
+               "DPName*": "signal1",
                "Id": "test/signal1",
                "Readable": true,
                "Source": "test1-source",
                "Writable": true
            },
            {
+               "DPName*": "signal2",
                "Id": "test/signal2",
                "Readable": false,
                "Source": "test2-source",
                "Writable": true
            },
            {
+               "DPName*": "signal3",
                "Id": "test/signal3",
                "Readable": true,
                "Source": "test2-source",
