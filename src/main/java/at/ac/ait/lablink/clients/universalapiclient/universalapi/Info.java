@@ -29,13 +29,10 @@ public class Info {
    * @param id NodeId
    */
   public Info( String id ) {
-    if ( false == SchemaHelper.checkSignalId( id ) ) {
-      throw new IllegalArgumentException( "Invalid SignalId: " + id );
-    }
     this.id = id;
     this.transport = new Transport();
   }
-
+  
   /**
    * Retrieve NodeId.
    *

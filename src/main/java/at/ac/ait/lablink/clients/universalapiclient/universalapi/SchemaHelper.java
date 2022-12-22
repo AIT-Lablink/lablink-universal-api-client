@@ -10,30 +10,16 @@ package at.ac.ait.lablink.clients.universalapiclient.universalapi;
  */
 public class SchemaHelper {
 
-  /** Regular expression defining valid SignalIds. */
-  public static final String SIGNAL_ID_REGEX = "^[a-z0-9-_/]+$";
-
-  /** Regular expression defining valid NodeIds. */
-  public static final String NODE_ID_REGEX = "^[a-z0-9-]{3,}$";
+  /** Regular expression defining valid ChannelIds. */
+  public static final String CHANNEL_ID_REGEX = "^[a-zA-Z0-9-_/.:]+$";
 
   /**
-   * Check if string conforms to SignalId definition.
+   * Check if string conforms to ChannelId definition.
    *
-   * @param signalId  string to be checked
-   * @return true, if string conforms to SignalId definition
+   * @param channelId  string to be checked
+   * @return true, if string conforms to ChannelId definition
    */
-  public static boolean checkSignalId( String signalId ) {
-    return signalId.matches( SIGNAL_ID_REGEX );
+  public static boolean checkChannelId( String channelId ) {
+    return channelId.matches( CHANNEL_ID_REGEX );
   }
-
-  /**
-   * Check if string conforms to NodelId definition.
-   *
-   * @param nodeId  string to be checked
-   * @return true, if string conforms to NodeId definition
-   */
-  public static boolean checkNodeId( String nodeId ) {
-    return nodeId.matches( NODE_ID_REGEX );
-  }
-
 }

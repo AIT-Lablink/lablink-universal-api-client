@@ -5,10 +5,31 @@
 
 package at.ac.ait.lablink.clients.universalapiclient;
 
+import at.ac.ait.lablink.clients.universalapiclient.handlers.ChannelDescriptionHandler;
+import at.ac.ait.lablink.clients.universalapiclient.handlers.ChannelHandler;
+import at.ac.ait.lablink.clients.universalapiclient.handlers.InfoHandler;
+import at.ac.ait.lablink.clients.universalapiclient.handlers.StatusHandler;
+import at.ac.ait.lablink.clients.universalapiclient.services.DataServiceBoolean;
+import at.ac.ait.lablink.clients.universalapiclient.services.DataServiceComplex;
+import at.ac.ait.lablink.clients.universalapiclient.services.DataServiceDouble;
+import at.ac.ait.lablink.clients.universalapiclient.services.DataServiceLong;
+import at.ac.ait.lablink.clients.universalapiclient.services.DataServiceString;
+import at.ac.ait.lablink.clients.universalapiclient.services.EventDataNotifier;
+import at.ac.ait.lablink.clients.universalapiclient.services.SampleDataNotifier;
+import at.ac.ait.lablink.clients.universalapiclient.universalapi.Channel;
+import at.ac.ait.lablink.clients.universalapiclient.universalapi.ChannelDescription;
+import at.ac.ait.lablink.clients.universalapiclient.universalapi.ComplexValue;
 import at.ac.ait.lablink.clients.universalapiclient.universalapi.Configuration;
+import at.ac.ait.lablink.clients.universalapiclient.universalapi.Event;
+import at.ac.ait.lablink.clients.universalapiclient.universalapi.EventChannel;
 import at.ac.ait.lablink.clients.universalapiclient.universalapi.Info;
-import at.ac.ait.lablink.clients.universalapiclient.universalapi.Signal;
-import at.ac.ait.lablink.clients.universalapiclient.universalapi.SignalDescription;
+import at.ac.ait.lablink.clients.universalapiclient.universalapi.NumericRange;
+import at.ac.ait.lablink.clients.universalapiclient.universalapi.Sample;
+import at.ac.ait.lablink.clients.universalapiclient.universalapi.SampleChannel;
+import at.ac.ait.lablink.clients.universalapiclient.universalapi.Source;
+import at.ac.ait.lablink.clients.universalapiclient.universalapi.Status;
+import at.ac.ait.lablink.clients.universalapiclient.universalapi.TimeSource;
+import at.ac.ait.lablink.clients.universalapiclient.universalapi.Validity;
 import at.ac.ait.lablink.clients.universalapiclient.util.ConfigUtil;
 import at.ac.ait.lablink.clients.universalapiclient.util.TestUtil;
 
@@ -24,6 +45,7 @@ import at.ac.ait.lablink.core.client.ex.ServiceTypeDoesNotMatchClientType;
 import at.ac.ait.lablink.core.client.impl.LlClient;
 import at.ac.ait.lablink.core.service.IImplementedService;
 import at.ac.ait.lablink.core.service.LlService;
+import at.ac.ait.lablink.core.service.types.Complex;
 import at.ac.ait.lablink.core.utility.Utility;
 
 import com.sun.net.httpserver.HttpServer;
@@ -39,8 +61,6 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import org.jboss.resteasy.plugins.server.sun.http.HttpContextBuilder;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -99,12 +119,22 @@ public class UniversalApiClient {
   protected static final String UAPI_PORT_CONFIG_TAG = "Port";
 
   // Tags for input configuration.
-  protected static final String SIGNAL_CONFIG_TAG = "Signals";
-  protected static final String SIGNAL_DPNAME_TAG = "DPName";
-  protected static final String SIGNAL_ID_TAG = "Id";
-  protected static final String SIGNAL_SOURCE_TAG = "Source";
-  protected static final String SIGNAL_WRITABLE_TAG = "Writable";
-  protected static final String SIGNAL_READABLE_TAG = "Readable";
+  protected static final String CHANNEL_CONFIG_TAG = "Channels";
+  protected static final String CHANNEL_DPNAME_TAG = "DPName";
+  protected static final String CHANNEL_ID_TAG = "Id";
+  protected static final String CHANNEL_PAYLOAD_TAG = "Payload";
+  protected static final String CHANNEL_WRITABLE_TAG = "Writable";
+  protected static final String CHANNEL_READABLE_TAG = "Readable";
+  protected static final String CHANNEL_DATATYPE_TAG = "Datatype";
+  protected static final String CHANNEL_UNIT_TAG = "Unit";
+  protected static final String CHANNEL_RATE_TAG = "Rate";
+  protected static final String CHANNEL_RANGE_TAG = "Range";
+  protected static final String CHANNEL_RANGE_MIN_TAG = "Min";
+  protected static final String CHANNEL_RANGE_MAX_TAG = "Max";
+
+  protected static final String SAMPLE_TIMESOURCE_TAG = "TimeSource";
+  protected static final String SAMPLE_VALIDITY_TAG = "Validity";
+  protected static final String SAMPLE_SOURCE_TAG = "Source";
 
   /** Flag for testing (write config and exit). */
   private static boolean writeConfigAndExitFlag;
@@ -115,9 +145,11 @@ public class UniversalApiClient {
   /** Singleton instance of Universal API client. */
   private static UniversalApiClient instance;
 
-  private Map<String, Signal> signals = new ConcurrentHashMap<>();
+  private Map<String, Channel> channels = new ConcurrentHashMap<>();
 
   private Info info;
+
+  private Status status;
 
   private Configuration configuration;
 
@@ -269,13 +301,13 @@ public class UniversalApiClient {
     // Configure connection parameters of REST interface.
     configureRestApi( uapiConfig );
 
-    // Retrieve config for signals.
-    JSONArray signalConfigList = ConfigUtil.<JSONArray>getRequiredConfigParam( jsonConfig,
-        SIGNAL_CONFIG_TAG, String.format( "Universal API signal definition (JSON array with tag "
-        + "'%1$s') is missing", SIGNAL_CONFIG_TAG ) );
+    // Retrieve config for channels.
+    JSONArray channelConfigList = ConfigUtil.<JSONArray>getRequiredConfigParam( jsonConfig,
+        CHANNEL_CONFIG_TAG, String.format( "Universal API channel definition (JSON array with tag "
+        + "'%1$s') is missing", CHANNEL_CONFIG_TAG ) );
 
-    // Configure signals.
-    configureSignals( signalConfigList );
+    // Configure channels.
+    configureChannels( channelConfigList );
 
     // Add data services to the client.
     configureLablinkDataServices();
@@ -302,39 +334,51 @@ public class UniversalApiClient {
       TestUtil.writeConfigAndExit( this );
     } else {
       HttpServer server = HttpServer.create( new InetSocketAddress( portNumber.intValue() ), 0 );
-      HttpContextBuilder contextBuilder = new HttpContextBuilder();
-      contextBuilder.getDeployment()
-          .getActualResourceClasses()
-          .add( UniversalApiClientRestInterface.class );
-      contextBuilder.setPath( endpointUriPrefix );
-      contextBuilder.bind( server );
+
+      // Add handlers for REST API endpoints.
+      server.createContext(
+          "/" + this.endpointUriPrefix + "/" + InfoHandler.ENDPOINT,
+          new InfoHandler() );
+      server.createContext(
+          "/" + this.endpointUriPrefix + "/" + StatusHandler.ENDPOINT,
+          new StatusHandler() );
+      server.createContext(
+          "/" + this.endpointUriPrefix + "/" + ChannelDescriptionHandler.ENDPOINT,
+          new ChannelDescriptionHandler() );
+      server.createContext(
+          "/" + this.endpointUriPrefix + "/" + ChannelHandler.ENDPOINT,
+          new ChannelHandler() );
+
+      // Do not use thread pool.
+      server.setExecutor( null );
+
       server.start();
     }
   }
 
   /**
-   * Get a list of descriptions of all signals accessible through the REST interface.
+   * Get a list of descriptions of all channels accessible through the REST interface.
    *
-   * @return list of signal descriptions
+   * @return list of channel descriptions
    */
-  public List<SignalDescription> getSignalDescriptions() {
-    List<SignalDescription> descriptions = new ArrayList<SignalDescription>();
+  public List<ChannelDescription> getChannelDescriptions() {
+    List<ChannelDescription> descriptions = new ArrayList<ChannelDescription>();
 
-    for ( Signal signal: this.signals.values() ) {
-      descriptions.add( signal.getDescription() );
+    for ( Channel channel: this.channels.values() ) {
+      descriptions.add( channel.getDescription() );
     }
- 
+
     return descriptions;
   }
 
   /**
-   * Retrieve data structure representing a signal that is accessible through the REST interface.
+   * Retrieve data structure representing a channel that is accessible through the REST interface.
    *
-   * @param id SignalId
-   * @return signal
+   * @param id ChannelId
+   * @return channel
    */
-  public Signal getSignal( String id ) {
-    return this.signals.get( id );
+  public Channel getChannel( String id ) {
+    return this.channels.get( id );
   }
 
   /**
@@ -347,25 +391,49 @@ public class UniversalApiClient {
   }
 
   /**
-   * Retrieve the Lablink-specific configuration about this client as served by the REST interface.
+   * Retrieve the API status for this client as served by the REST interface.
    *
-   * @return configuration info
+   * @return API status
    */
-  public Configuration getConfiguration() {
-    return this.configuration;
+  public Status getStatus() {
+    return this.status;
   }
 
   /**
-   * Set the value of the Lablink data service associated to a signal.
+   * Set the value of the Lablink data service associated to a channel.
    *
-   * @param id SignalId
-   * @param value new value of signal
+   * @param id ChannelId
+   * @param value new sample value of channel
    * @throws at.ac.ait.lablink.core.client.ex.ServiceIsNotRegisteredWithClientException
    *   service is not registered with client exception
    */
-  public void setServiceValue( String id, double value ) throws
+  public void setServiceValueBoolean( String id, Boolean value ) throws
+      at.ac.ait.lablink.core.client.ex.ServiceIsNotRegisteredWithClientException {
+    this.client.setServiceValue( id, Boolean.valueOf( value ) );
+  }
+
+  public void setServiceValueDouble( String id, Double value ) throws
       at.ac.ait.lablink.core.client.ex.ServiceIsNotRegisteredWithClientException {
     this.client.setServiceValue( id, Double.valueOf( value ) );
+  }
+
+  public void setServiceValueLong( String id, Long value ) throws
+      at.ac.ait.lablink.core.client.ex.ServiceIsNotRegisteredWithClientException {
+    this.client.setServiceValue( id, Long.valueOf( value ) );
+  }
+
+  public void setServiceValueString( String id, String value ) throws
+      at.ac.ait.lablink.core.client.ex.ServiceIsNotRegisteredWithClientException {
+    this.client.setServiceValue( id, String.valueOf( value ) );
+  }
+
+  public void setServiceValueComplex( String id, ComplexValue value ) throws
+      at.ac.ait.lablink.core.client.ex.ServiceIsNotRegisteredWithClientException {
+    this.client.setServiceValue( id, new Complex( value.real, value.imag ) );
+  }
+
+  public String getEndpointUriPrefix() {
+    return this.endpointUriPrefix;
   }
 
   //
@@ -418,14 +486,16 @@ public class UniversalApiClient {
     boolean isPseudo = false;
 
     // Declare the client with required interface.
-    client = new LlClient( clientName,
+    this.client = new LlClient( clientName,
         MqttCommInterfaceUtility.SP_ACCESS_NAME, giveShell, isPseudo );
+
+    this.status = new Status( this.client );
 
     // Specify client configuration (no sync host).
     MqttCommInterfaceUtility.addClientProperties( client, clientDesc,
         scenarioName, groupName, clientName, llPropUri, llSyncUri, null );
 
-    configuration = new Configuration( clientDesc, clientName, groupName,
+    this.configuration = new Configuration( clientDesc, clientName, groupName,
         scenarioName, llPropUri, llSyncUri );
   }
 
@@ -438,6 +508,10 @@ public class UniversalApiClient {
     // REST interface URI prefix (optional).
     this.endpointUriPrefix = ConfigUtil.getOptionalConfigParam( uapiConfig,
         UAPI_ENDPOINT_PREFIX_CONFIG_TAG, "" );
+
+    // Remove leading and trailing "/".
+    this.endpointUriPrefix = this.endpointUriPrefix.replaceAll( "^/+(?!$)", "" );
+    this.endpointUriPrefix = this.endpointUriPrefix.replaceAll( "(?!^)/+$", "" );
 
     // REST interface port number (optional).
     this.portNumber = ConfigUtil.getOptionalConfigParam( uapiConfig,
@@ -453,84 +527,335 @@ public class UniversalApiClient {
 
 
   /**
-   * Configure the signals for the REST API.
+   * Configure the channels for the REST API.
    *
-   * @param signalConfigList configuration data (JSON format)
+   * @param channelConfigList configuration data (JSON format)
    */
-  protected void configureSignals( JSONArray signalConfigList )  {
+  protected void configureChannels( JSONArray channelConfigList ) {
     @SuppressWarnings("rawtypes")
-    Iterator signalConfigListIter = signalConfigList.iterator();
+    Iterator channelConfigListIter = channelConfigList.iterator();
 
     // Create data point consumer for each input.
-    while ( signalConfigListIter.hasNext() ) {
-      JSONObject signalConfig = (JSONObject) signalConfigListIter.next();
+    while ( channelConfigListIter.hasNext() ) {
+      JSONObject channelConfig = (JSONObject) channelConfigListIter.next();
 
-      // Datapoint name corresponding to signal.
-      String dpName = ConfigUtil.<String>getRequiredConfigParam( signalConfig,
-          SIGNAL_DPNAME_TAG, String.format( "Datapoint name of signal missing (%1$s)",
-          SIGNAL_DPNAME_TAG ) );
+      // Datapoint name corresponding to channel.
+      String dpName = ConfigUtil.<String>getRequiredConfigParam( channelConfig,
+          CHANNEL_DPNAME_TAG, String.format( "Datapoint name of channel missing (%1$s)",
+          CHANNEL_DPNAME_TAG ) );
 
-      // SignalId of signal.
-      String signalId = ConfigUtil.<String>getRequiredConfigParam( signalConfig,
-          SIGNAL_ID_TAG, String.format( "Id of signal missing (%1$s)",
-          SIGNAL_ID_TAG ) );
+      // ChannelId of channel.
+      String channelId = ConfigUtil.<String>getRequiredConfigParam( channelConfig,
+          CHANNEL_ID_TAG, String.format( "Id of channel missing (%1$s)",
+          CHANNEL_ID_TAG ) );
 
-      // NodeId of source.
-      String sourceId = ConfigUtil.<String>getRequiredConfigParam( signalConfig,
-          SIGNAL_SOURCE_TAG, String.format( "Source Id of signal missing (%1$s)",
-          SIGNAL_SOURCE_TAG ) );
+      // Payload type of channel.
+      String payload = ConfigUtil.<String>getRequiredConfigParam( channelConfig,
+          CHANNEL_PAYLOAD_TAG, String.format( "Payload type of channel missing (%1$s)",
+          CHANNEL_PAYLOAD_TAG ) );
 
-      boolean writable = ConfigUtil.getOptionalConfigParam( signalConfig,
-          SIGNAL_WRITABLE_TAG, true );
+      // Data type of channel.
+      String datatype = ConfigUtil.<String>getRequiredConfigParam( channelConfig,
+          CHANNEL_DATATYPE_TAG, String.format( "Datatype of channel missing (%1$s)",
+          CHANNEL_DATATYPE_TAG ) );
 
-      boolean readable = ConfigUtil.getOptionalConfigParam( signalConfig,
-          SIGNAL_READABLE_TAG, true );
+      boolean writable = ConfigUtil.getOptionalConfigParam( channelConfig,
+          CHANNEL_WRITABLE_TAG, true );
 
-      signals.put( signalId, new Signal( dpName, signalId, sourceId, writable, readable ) );
+      boolean readable = ConfigUtil.getOptionalConfigParam( channelConfig,
+          CHANNEL_READABLE_TAG, true );
+
+      String unit = ConfigUtil.getOptionalConfigParam( channelConfig,
+          CHANNEL_UNIT_TAG, null );
+
+      Number rate = ConfigUtil.getOptionalConfigParam( channelConfig,
+          CHANNEL_RATE_TAG, null );
+
+      String timeSource = ConfigUtil.getOptionalConfigParam( channelConfig,
+          SAMPLE_TIMESOURCE_TAG, TimeSource.UNKNOWN.toString() );
+
+      String validity = ConfigUtil.getOptionalConfigParam( channelConfig,
+          SAMPLE_VALIDITY_TAG, Validity.UNKNOWN.toString() );
+
+      String source = ConfigUtil.getOptionalConfigParam( channelConfig,
+          SAMPLE_SOURCE_TAG, Source.UNKNOWN.toString() );
+
+      switch ( datatype.toUpperCase() ) {
+        case "FLOAT":
+          configureChannelFloat( channelConfig, dpName, channelId,
+              ChannelDescription.Payload.valueOf( payload.toUpperCase() ),
+              ChannelDescription.Datatype.valueOf( datatype.toUpperCase() ),
+              TimeSource.valueOf( timeSource.toUpperCase() ),
+              Validity.valueOf( validity.toUpperCase() ),
+              Source.valueOf( source.toUpperCase() ),
+              unit, rate, writable, readable );
+          break;
+        case "INTEGER":
+          configureChannelInteger( channelConfig, dpName, channelId,
+              ChannelDescription.Payload.valueOf( payload.toUpperCase() ),
+              ChannelDescription.Datatype.valueOf( datatype.toUpperCase() ),
+              TimeSource.valueOf( timeSource.toUpperCase() ),
+              Validity.valueOf( validity.toUpperCase() ),
+              Source.valueOf( source.toUpperCase() ),
+              unit, rate, writable, readable );
+          break;
+        case "STRING":
+          configureChannelString( channelConfig, dpName, channelId,
+              ChannelDescription.Payload.valueOf( payload.toUpperCase() ),
+              ChannelDescription.Datatype.valueOf( datatype.toUpperCase() ),
+              TimeSource.valueOf( timeSource.toUpperCase() ),
+              Validity.valueOf( validity.toUpperCase() ),
+              Source.valueOf( source.toUpperCase() ),
+              unit, rate, writable, readable );
+          break;
+        case "BOOLEAN":
+          configureChannelBoolean( channelConfig, dpName, channelId,
+              ChannelDescription.Payload.valueOf( payload.toUpperCase() ),
+              ChannelDescription.Datatype.valueOf( datatype.toUpperCase() ),
+              TimeSource.valueOf( timeSource.toUpperCase() ),
+              Validity.valueOf( validity.toUpperCase() ),
+              Source.valueOf( source.toUpperCase() ),
+              unit, rate, writable, readable );
+          break;
+        case "COMPLEX":
+          configureChannelComplex( channelConfig, dpName, channelId,
+              ChannelDescription.Payload.valueOf( payload.toUpperCase() ),
+              ChannelDescription.Datatype.valueOf( datatype.toUpperCase() ),
+              TimeSource.valueOf( timeSource.toUpperCase() ),
+              Validity.valueOf( validity.toUpperCase() ),
+              Source.valueOf( source.toUpperCase() ),
+              unit, rate, writable, readable );
+          break;
+        default:
+          throw new IllegalArgumentException( "Unknown data type: " + datatype );
+      }
     }
   }
 
+  @SuppressWarnings( "unchecked" )
+  private void configureChannelFloat( JSONObject channelConfig, String dpName, String channelId,
+      ChannelDescription.Payload payload, ChannelDescription.Datatype datatype,
+      TimeSource timeSource, Validity validity, Source source,
+      String unit, Number rate, boolean writable, boolean readable ) {
+    Object rangeFloat = null;
+    JSONObject rangeFloatConfig = ConfigUtil.getOptionalConfigParam( channelConfig,
+        CHANNEL_RANGE_TAG, null );
+
+    if ( null != rangeFloatConfig ) {
+      Double min = ConfigUtil.<Double>getRequiredConfigParam( rangeFloatConfig,
+          CHANNEL_RANGE_MIN_TAG, String.format( "Minimum range missing (%1$s)",
+          CHANNEL_RANGE_MIN_TAG ) );
+
+      Double max = ConfigUtil.<Double>getRequiredConfigParam( rangeFloatConfig,
+          CHANNEL_RANGE_MAX_TAG, String.format( "Minimum range missing (%1$s)",
+          CHANNEL_RANGE_MAX_TAG ) );
+
+      rangeFloat = new NumericRange( min,  max );
+    }
+
+    if ( payload == ChannelDescription.Payload.SAMPLES ) {
+      this.channels.put( channelId, new SampleChannel<Double>( dpName, channelId, payload,
+          datatype, timeSource, validity, source, rangeFloat, unit, rate, writable, readable ) );
+    } else {
+      this.channels.put( channelId, new EventChannel<Double>( dpName, channelId, payload,
+          datatype, timeSource, validity, source, rangeFloat, unit, rate, writable, readable ) );
+    }
+  }
+
+  @SuppressWarnings( "unchecked" )
+  private void configureChannelInteger( JSONObject channelConfig, String dpName, String channelId,
+      ChannelDescription.Payload payload, ChannelDescription.Datatype datatype,
+      TimeSource timeSource, Validity validity, Source source,
+      String unit, Number rate, boolean writable, boolean readable ) {
+    Object rangeInteger = null;
+    JSONObject rangeIntegerConfig = ConfigUtil.getOptionalConfigParam( channelConfig,
+        CHANNEL_RANGE_TAG, null );
+
+    if ( null != rangeIntegerConfig ) {
+      Long min = ConfigUtil.<Long>getRequiredConfigParam( rangeIntegerConfig,
+          CHANNEL_RANGE_MIN_TAG, String.format( "Minimum range missing (%1$s)",
+          CHANNEL_RANGE_MIN_TAG ) );
+
+      Long max = ConfigUtil.<Long>getRequiredConfigParam( rangeIntegerConfig,
+          CHANNEL_RANGE_MAX_TAG, String.format( "Minimum range missing (%1$s)",
+          CHANNEL_RANGE_MAX_TAG ) );
+
+      rangeInteger = new NumericRange( min,  max );
+    }
+
+    if ( payload == ChannelDescription.Payload.SAMPLES ) {
+      this.channels.put( channelId, new SampleChannel<Integer>( dpName, channelId, payload,
+          datatype, timeSource, validity, source, rangeInteger, unit, rate, writable, readable ) );
+    } else {
+      this.channels.put( channelId, new EventChannel<Integer>( dpName, channelId, payload,
+          datatype, timeSource, validity, source, rangeInteger, unit, rate, writable, readable ) );
+    }
+  }
+
+  @SuppressWarnings( "unchecked" )
+  private void configureChannelString( JSONObject channelConfig, String dpName, String channelId,
+      ChannelDescription.Payload payload, ChannelDescription.Datatype datatype,
+      TimeSource timeSource, Validity validity, Source source,
+      String unit, Number rate, boolean writable, boolean readable ) {
+    Object rangeString = null;
+    JSONArray rangeStringConfig = ConfigUtil.getOptionalConfigParam( channelConfig,
+        CHANNEL_RANGE_TAG, null );
+
+    if ( null != rangeStringConfig ) {
+      String[] arr = new String[rangeStringConfig.size()];
+      for ( int i = 0; i < arr.length; i++ ) {
+        arr[i] = rangeStringConfig.get(i).toString();
+      }
+      rangeString = arr;
+    }
+
+    if ( payload == ChannelDescription.Payload.SAMPLES ) {
+      this.channels.put( channelId, new SampleChannel<String>( dpName, channelId, payload,
+          datatype, timeSource, validity, source, rangeString, unit, rate, writable, readable ) );
+    } else {
+      this.channels.put( channelId, new EventChannel<String>( dpName, channelId, payload,
+          datatype, timeSource, validity, source, rangeString, unit, rate, writable, readable ) );
+    }
+  }
+
+  private void configureChannelBoolean( JSONObject channelConfig, String dpName, String channelId,
+      ChannelDescription.Payload payload, ChannelDescription.Datatype datatype,
+      TimeSource timeSource, Validity validity, Source source,
+      String unit, Number rate, boolean writable, boolean readable ) {
+    if ( payload == ChannelDescription.Payload.SAMPLES ) {
+      this.channels.put( channelId, new SampleChannel<Boolean>( dpName, channelId, payload,
+          datatype, timeSource, validity, source, null, unit, rate, writable, readable ) );
+    } else {
+      this.channels.put( channelId, new EventChannel<Boolean>( dpName, channelId, payload,
+          datatype, timeSource, validity, source, null, unit, rate, writable, readable ) );
+    }
+  }
+
+  private void configureChannelComplex( JSONObject channelConfig, String dpName, String channelId,
+      ChannelDescription.Payload payload, ChannelDescription.Datatype datatype,
+      TimeSource timeSource, Validity validity, Source source,
+      String unit, Number rate, boolean writable, boolean readable ) {
+    if ( payload == ChannelDescription.Payload.SAMPLES ) {
+      this.channels.put( channelId, new SampleChannel<Complex>( dpName, channelId, payload,
+          datatype, timeSource, validity, source, null, unit, rate, writable, readable ) );
+    } else {
+      this.channels.put( channelId, new EventChannel<Complex>( dpName, channelId, payload,
+          datatype, timeSource, validity, source, null, unit, rate, writable, readable ) );
+    }
+  }
 
   /**
-   * Configure the data services, which connect the signals (i.e, the REST endpoints) with Lablink.
+   * Configure the data services, which connect the channels (i.e, the REST endpoints) with Lablink.
    *
    * @throws at.ac.ait.lablink.core.client.ex.ServiceTypeDoesNotMatchClientType
    *   service type does not match client type
    */
   protected void configureLablinkDataServices() throws
       at.ac.ait.lablink.core.client.ex.ServiceTypeDoesNotMatchClientType {
-    
-    for ( Map.Entry<String, Signal> entry : signals.entrySet() ) {
 
-      String signalName = entry.getKey();
-      Signal signal = entry.getValue();
+    for ( Map.Entry<String, Channel> entry : channels.entrySet() ) {
+
+      String channelName = entry.getKey();
+      Channel channel = entry.getValue();
+
+      // Retrieve the channel's description.
+      ChannelDescription description = channel.getDescription();
 
       // Data service name.
-      String serviceName = signal.getDataPointName();
+      String serviceName = channel.getDataPointName();
 
       // Data service description.
-      String serviceDesc = "data service for signal " + signalName;
+      String serviceDesc = "data service for channel " + channelName;
 
       // Unit associated to values handled by the data service.
-      String serviceUnit = "none";
+      String serviceUnit = description.getUnit();
+
+      // Get the channel's datatype.
+      ChannelDescription.Datatype datatype = description.getDatatypeEnum();
 
       // Create new data service.
-      UniversalApiClientDataService dataService = new UniversalApiClientDataService();
+      LlService dataService = null;
+      switch ( datatype ) {
+        case BOOLEAN:
+          dataService = new DataServiceBoolean();
+          break;
+        case FLOAT:
+          dataService = new DataServiceDouble();
+          break;
+        case INTEGER:
+          dataService = new DataServiceLong();
+          break;
+        case STRING:
+          dataService = new DataServiceString();
+          break;
+        case COMPLEX:
+          dataService = new DataServiceComplex();
+          break;
+        default:
+          // This default switch cannot be reached.
+          break;
+      }
+
+      // Set the name of the associated data service.
       dataService.setName( serviceName );
 
       // Specify data service properties.
       MqttCommInterfaceUtility.addDataPointProperties( dataService,
           serviceName, serviceDesc, serviceName, serviceUnit );
 
-      if ( true == signal.getDescription().getReadable() ) {
-        // Create new notifier.
-        UniversalApiClientDataNotifier notifier = new UniversalApiClientDataNotifier();
+      if ( description.getPayloadEnum() == ChannelDescription.Payload.SAMPLES ) {
+        // Create new notifier for samples.
+        SampleDataNotifier sampleNotifier = null;
+        switch ( datatype ) {
+          case BOOLEAN:
+            sampleNotifier = new SampleDataNotifier<Boolean>();
+            break;
+          case FLOAT:
+            sampleNotifier = new SampleDataNotifier<Double>();
+            break;
+          case INTEGER:
+            sampleNotifier = new SampleDataNotifier<Long>();
+            break;
+          case STRING:
+            sampleNotifier = new SampleDataNotifier<String>();
+            break;
+          case COMPLEX:
+            sampleNotifier = new SampleDataNotifier<Complex>();
+            break;
+          default:
+            // This default switch cannot be reached.
+            break;
+        }
 
-        // Associate notifer to signal.
-        notifier.setSignalState( signal.getState() );
+        // Associate notifier to channel.
+        associateSampleNotifierToChannel( dataService, sampleNotifier, channel );
 
-        // Add notifier.
-        dataService.addStateChangeNotifier( notifier );
+      } else {
+        // Create new notifier for events.
+        EventDataNotifier eventNotifier = null;
+        switch ( datatype ) {
+          case BOOLEAN:
+            eventNotifier = new EventDataNotifier<Boolean>();
+            break;
+          case FLOAT:
+            eventNotifier = new EventDataNotifier<Double>();
+            break;
+          case INTEGER:
+            eventNotifier = new EventDataNotifier<Long>();
+            break;
+          case STRING:
+            eventNotifier = new EventDataNotifier<String>();
+            break;
+          case COMPLEX:
+            eventNotifier = new EventDataNotifier<Complex>();
+            break;
+          default:
+            // This default switch cannot be reached.
+            break;
+        }
+
+        // Associate notifier to channel.
+        associateEventNotifierToChannel( dataService, eventNotifier, channel );
       }
 
       // Add service to the client.
@@ -538,6 +863,23 @@ public class UniversalApiClient {
     }
   }
 
+  @SuppressWarnings( "unchecked" )
+  private void associateSampleNotifierToChannel( LlService service,
+      SampleDataNotifier notifier, Channel channel ) {
+    // Associate notifier to channel.
+    notifier.setSample( ( (SampleChannel) channel ).getSample() );
+    // Add notifier.
+    service.addStateChangeNotifier( notifier );
+  }
+
+  @SuppressWarnings( "unchecked" )
+  private void associateEventNotifierToChannel( LlService service,
+      EventDataNotifier notifier, Channel channel ) {
+    // Associate notifier to channel.
+    notifier.setChannel( (EventChannel) channel );
+    // Add notifier.
+    service.addStateChangeNotifier( notifier );
+  }
 
   /**
    * Parse the command line arguments to retrieve the configuration.
@@ -567,9 +909,9 @@ public class UniversalApiClient {
 
     // Define command line option.
     Options cliOptions = new Options();
-    cliOptions.addOption( CLI_CONF_FLAG, CLI_CONF_LONG_FLAG, 
+    cliOptions.addOption( CLI_CONF_FLAG, CLI_CONF_LONG_FLAG,
         true, "Universal API client configuration URI" );
-    cliOptions.addOption( CLI_TEST_FLAG, 
+    cliOptions.addOption( CLI_TEST_FLAG,
         false, "write config and exit" );
 
     // Parse command line options.
