@@ -768,7 +768,8 @@ public class UniversalApiClient {
       String serviceDesc = "data service for channel " + channelName;
 
       // Unit associated to values handled by the data service.
-      String serviceUnit = description.getUnit();
+      String unit = description.getUnit();
+      String serviceUnit = ( null == unit ) ? "" : unit;
 
       // Get the channel's datatype.
       ChannelDescription.Datatype datatype = description.getDatatypeEnum();
