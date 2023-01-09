@@ -14,7 +14,7 @@ REM Root directory of Universal API client package (only change this if you real
 SET UAPI_CLIENT_ROOT_DIR=%~DP0..
 
 REM Path to Java JAR file of Universal API client.
-SET UAPI_CLIENT_JAR_FILE=%UAPI_CLIENT_ROOT_DIR%\target\assembly\universalapiclient-%VERSION%-jar-with-dependencies.jar 
+SET UAPI_CLIENT_JAR_FILE=%UAPI_CLIENT_ROOT_DIR%\target\dependency\universalapiclient-%VERSION%-jar-with-dependencies.jar 
 
 REM Path to Java JAR file of data point bridge.
 SET DPB_JAR_FILE=%UAPI_CLIENT_ROOT_DIR%\target\dependency\dpbridge-0.0.3-jar-with-dependencies.jar
