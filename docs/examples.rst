@@ -78,7 +78,7 @@ Use ``curl`` directly from the command prompt (``cmd.exe``):
 
 .. code-block:: winbatch
 
-   curl -i localhost:7000/uapi-test/signals
+   curl -i localhost:7000/uapi-test/channels
 
 
 This will return the API's response status (*200* in case of success) and the list of available signals:
