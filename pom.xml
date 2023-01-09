@@ -256,29 +256,26 @@
       <scope>compile</scope>
     </dependency>
 
+    <!-- Constants for HTTP response headers -->
     <dependency>
       <groupId>javax.ws.rs</groupId>
       <artifactId>javax.ws.rs-api</artifactId>
       <version>2.1.1</version>
     </dependency>
 
+    <!-- XML representation -->
     <dependency>
       <groupId>javax.xml.bind</groupId>
       <artifactId>jaxb-api</artifactId>
       <version>2.3.1</version>
     </dependency>
 
+    <!-- XML parsing and validation -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
       <version>2.14.1</version>
     </dependency>
-
-    <!-- <dependency> -->
-			<!-- <groupId>org.jboss.resteasy</groupId> -->
-			<!-- <artifactId>resteasy-jackson-provider</artifactId> -->
-			<!-- <version>3.15.3.Final</version> -->
-		<!-- </dependency> -->
 
     <!-- Unit Testing -->
     <dependency>

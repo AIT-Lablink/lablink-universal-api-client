@@ -18,17 +18,19 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class Sample<T> {
 
-  /** sample timestamp. */
+  /** Sample timestamp. */
   private Double timestamp;
 
-  /** sample value. */
+  /** Sample value. */
   private T value;
 
+  /** Representation of time source attribute. */
   private TimeSource timeSource;
 
+  /** Representation of validity attribute. */
   private Validity validity;
   
-  
+  /** Representation of source attribute. */
   private Source source;
 
   /**

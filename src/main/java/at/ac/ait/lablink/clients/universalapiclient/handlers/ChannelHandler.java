@@ -91,7 +91,7 @@ public class ChannelHandler implements HttpHandler {
     // Split components of endpoint.
     String[] endpointSegments = endpoint.split("/");
 
-// Incorrect endpoint.
+    // Incorrect endpoint.
     if ( false == ENDPOINT.equals( endpointSegments[0] ) || ( endpointSegments.length < 3 ) ) {
       exchange.sendResponseHeaders( Response.Status.NOT_FOUND.getStatusCode(), -1 );
       return;
