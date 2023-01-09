@@ -1,10 +1,10 @@
 About
 =====
 
-The `online repository <https://github.com/AIT-Lablink/lablink-universal-api-client>`_ of the Lablink Universal Data Exchange API client includes a simlpe example demonstrating its use.
-This example comprises a simple REST API implementing the `ERIGrid Universal Data Exchange API <https://erigrid2.github.io/JRA-3.1-api/universal-api.html>`_, which exposes a readable signal (``test/signal1``) and a writable signal (``test/signal2``).
-The readable signal is continuously updated from another data source (a `Lablink CSV reader <https://ait-lablink.readthedocs.io/projects/ait-lablink-csv-client>`_) and its current value can be retrieved by the user (e.g., using ``curl`` from the command prompt).
-The writable signal can be changed by the user (e.g., using ``curl`` from the command prompt).
+The `online repository <https://github.com/AIT-Lablink/lablink-universal-api-client/tree/example>`_ of the Lablink Universal Data Exchange API client includes a simple example demonstrating its use.
+This example comprises a simple REST API implementing the `ERIGrid Universal Data Exchange API <https://erigrid2.github.io/JRA-3.1-api/universal-api.html>`_ (v2.0), which exposes a readable channel (``test/channel1``) and a writable channel (``test/channel2``).
+The readable channel is continuously updated from another data source (a `Lablink CSV reader <https://ait-lablink.readthedocs.io/projects/ait-lablink-csv-client>`_) and its current value (sample) can be retrieved by the user (e.g., using ``curl`` from the command prompt).
+The writable channel can be changed by the user (e.g., using ``curl`` from the command prompt).
 When running the example, both signals are visualized using a plotter.
 
 
@@ -22,12 +22,14 @@ Required Lablink resources
 
 The following Lablink resources are required for running the examples:
 
-* `Configuration Server <https://ait-lablink.readthedocs.io/projects/lablink-config-server>`__: *config-0.1.1-jar-with-dependencies.jar*
-* `Datapoint Bridge <https://ait-lablink.readthedocs.io/projects/lablink-datapoint-bridge>`__: *dpbridge-0.0.2-jar-with-dependencies.jar*
+* `Lablink Universal API Client <https://ait-lablink.readthedocs.io/projects/ait-lablink-universal-api-client>`__: *universalapiclient-0.1.0-jar-with-dependencies.jar*
 * `Lablink CSV Client <https://ait-lablink.readthedocs.io/projects/ait-lablink-csv-client>`__: *csvlient-0.0.2-jar-with-dependencies.jar*
 * `Lablink Plotter <https://ait-lablink.readthedocs.io/projects/lablink-plotter>`__: *plotter-0.0.4-jar-with-dependencies*
+* `Datapoint Bridge <https://ait-lablink.readthedocs.io/projects/lablink-datapoint-bridge>`__: *dpbridge-0.0.3-jar-with-dependencies.jar*
+* `Configuration Server <https://ait-lablink.readthedocs.io/projects/lablink-config-server>`__: *config-0.1.1-jar-with-dependencies.jar*
 
-When :doc:`building from source <installation>`, the corresponding JAR files will be copied to directory *target/dependency*.
+You can checkout the `example branch of the online repository <https://github.com/AIT-Lablink/lablink-universal-api-client/tree/example>`_ and run the installer script (Windows: ``install.cmd``, Linux: ``install.sh``).
+This will copy the corresponding JAR files to directory *target/dependency*.
 
 
 Running the example (Windows)
@@ -47,28 +49,28 @@ This script does the following things:
 3. Run the Lablink clients, i.e., the Universal API client, the CSV reader client (which acts as data source) and the plotter client.
 
 For each started client, a new command prompt window should appear, printing debug information about the client's status.
-The Universal API client should continuously receive data from the CSV reader, which updates the value of signal ``test/signal1`` once per second.
+The Universal API client should continuously receive data from the CSV reader, which updates the sample value of channel ``test/channel1`` once per second.
 You can check this by looking at the Universal API client's command prompt window, where you should see debug information for each new value.
 This should look similar to the following:
 
 .. code-block:: winbatch
 
    ...
-   15:15:16.526 [pool-2-thread-1] INFO  UniversalApiClientDataService - signal1: set new value to '13.536'
-   15:15:16.528 [pool-2-thread-1] DEBUG LlServiceBase - Service [signal1]: state changed from [13.346] to [13.536]!
-   15:15:16.533 [pool-2-thread-1] DEBUG LlServiceBase - Notifying to the [1] registered listener...
-   15:15:16.540 [pool-2-thread-1] INFO  UniversalApiClientDataNotifier - signal1: notifier -> state Changed from '13.346' to '13.536'
-   15:15:16.540 [pool-2-thread-1] DEBUG MqttDataPointDouble - For datapoint [data service for signal test/signal1], the value is updated to [13.536].
+   14:24:42.883 [pool-2-thread-1] INFO  DataServiceDouble - channel1: set new value to '14.193'
+   14:24:42.883 [pool-2-thread-1] DEBUG LlServiceBase - Service [channel1]: state changed from [14.33] to [14.193]!
+   14:24:42.883 [pool-2-thread-1] DEBUG LlServiceBase - Notifying to the [1] registered listener...
+   14:24:42.883 [pool-2-thread-1] INFO  SampleDataNotifier - channel1: notifier -> state Changed from '14.33' to '14.193'
+   14:24:42.898 [pool-2-thread-1] DEBUG MqttDataPointDouble - For datapoint [data service for channel test/channel1], the value is updated to [14.193].
    ...
 
 
-List all available signals
---------------------------
+List all available channels
+---------------------------
 
-In this example, the Universal API client has two signals: 
+In this example, the Universal API client has two channels:
 
-* ``test/signal1`` is a read-only signal
-* ``test/signal2`` is a write-only signal.
+* ``test/channel1`` is a read-only channel 
+* ``test/channel2`` is a write-only channel
 
 You can retrieve this information directly from the client.
 There are various ways of retrieving data from REST interfaces, one way is using ``curl`` (which is by default already included on recent versions of Windows).
@@ -84,33 +86,30 @@ This will return the API's response status (*200* in case of success) and the li
 .. code-block:: winbatch
 
    HTTP/1.1 200 OK
-   Date: Wed, 11 May 2022 14:06:12 GMT
-   Transfer-encoding: chunked
+   Date: Mon, 09 Jan 2023 13:29:51 GMT
    Content-type: application/json
+   Content-length: 222
+   [{"id":"test/channel2","payload":"samples","datatype":"float","writable":true,"readable":false},{"id":"test/channel1","payload":"samples","datatype":"float","range":{"min":5.0,"max":15.0},"writable":false,"readable":true}]
 
-   [{"id":"test/signal2","source":"test2-source","writable":true,"readable":false},{"id":"test/signal1","source":"test1-source","writable":false,"readable":true}]
+Retrieve a channel sample
+-------------------------
 
-
-Retrieve a signal value
------------------------
-
-Once the client is running, you can retrieve the latest value of ``test/signal1``.
+Once the client is running, you can retrieve the latest sample value of channel ``test/channel1``.
 To do so, you can use ``curl`` directly from the command prompt (``cmd.exe``): 
 
 .. code-block:: winbatch
 
-   curl -i localhost:7000/uapi-test/signal/test/signal1/state
+   curl -i localhost:7000/uapi-test/channel/test/channel1/sample
 
-This will return the API's response status (*200* in case of success) and the current value (state) of ``test/signal1``, for instance:
+This will return the API's response status (*200* in case of success) and the current sample value of ``test/channel1``, for instance:
 
 .. code-block:: winbatch
 
    HTTP/1.1 200 OK
-   Date: Wed, 11 May 2022 14:12:58 GMT
-   Transfer-encoding: chunked
+   Date: Mon, 09 Jan 2023 13:32:20 GMT
    Content-type: application/json
-   
-   {"timestamp":1.652278378469E9,"value":14.05}
+   Content-length: 109
+   {"timestamp":1.673271140676E9,"value":12.034,"validity":"valid","source":"calculated","timesource":"unknown"}
 
 The returned value should agree with the latest value as visualized by the plotter.
 
@@ -119,26 +118,27 @@ The returned value should agree with the latest value as visualized by the plott
    :alt: Retrieve current value of signal from Universal API client.
 
 
-Set a signal value
+Set a sample value
 ------------------
 
-The Universal API client also has a write-only signal called ``test/signal2``.
+The Universal API client also has a write-only channel called ``test/channel2``.
 There are various ways of updating data through a REST interfaces, one way is again with the help of ``curl``.
 Use ``curl`` directly from the command prompt (``cmd.exe``): 
 
 .. code-block:: winbatch
 
-   curl -i -X PUT -H "Content-Type: application/json" -d "{"""timestamp""":123.456,"""value""":13}" localhost:7000/uapi-test/signal/test/signal2/state
+   curl -i -X PUT -H "Content-Type: application/json" -d "{"""timestamp""":123.456,"""value""":13}" localhost:7000/uapi-test/channel/test/channel2/sample
 
 This will return the API's response status (*200* in case of success):
 
 .. code-block:: winbatch
 
    HTTP/1.1 200 OK
-   Date: Wed, 11 May 2022 14:16:31 GMT
-   Content-length: 0
+   Date: Mon, 09 Jan 2023 13:42:12 GMT
+   Content-length: 34
+   Success. Channel has been updated.
 
-The new value for ``test/signal2`` should also be visualized by the plotter.
+The new sample value for ``test/channel2`` should also be visualized by the plotter.
 
 .. image:: img/example_write_signal_value.png
    :align: center

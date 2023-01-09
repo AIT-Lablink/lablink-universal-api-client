@@ -9,7 +9,7 @@ Use it in your local Maven_ setup by including the following dependency into you
    <dependency>
      <groupId>at.ac.ait.lablink.clients</groupId>
      <artifactId>universalapiclient</artifactId>
-     <version>0.0.1</version>
+     <version>0.1.0</version>
    </dependency>
 
 .. note:: You may have to adapt this snippet to use the latest version, please check the |MCR|_.
