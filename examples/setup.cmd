@@ -8,7 +8,7 @@ REM Connection string for configuration server.
 SET LLCONFIG=http://localhost:10101/get?id=
 
 REM Version of Universal API client.
-SET VERSION=0.0.2
+SET VERSION=0.1.0
 
 REM Root directory of Universal API client package (only change this if you really know what you are doing).
 SET UAPI_CLIENT_ROOT_DIR=%~DP0..
@@ -17,7 +17,7 @@ REM Path to Java JAR file of Universal API client.
 SET UAPI_CLIENT_JAR_FILE=%UAPI_CLIENT_ROOT_DIR%\target\assembly\universalapiclient-%VERSION%-jar-with-dependencies.jar 
 
 REM Path to Java JAR file of data point bridge.
-SET DPB_JAR_FILE=%UAPI_CLIENT_ROOT_DIR%\target\dependency\dpbridge-0.0.2-jar-with-dependencies.jar
+SET DPB_JAR_FILE=%UAPI_CLIENT_ROOT_DIR%\target\dependency\dpbridge-0.0.3-jar-with-dependencies.jar
 
 REM Path to Java JAR file of CSV client package.
 SET CSV_CLIENT_JAR_FILE=%UAPI_CLIENT_ROOT_DIR%\target\dependency\csvclient-0.0.2-jar-with-dependencies.jar
